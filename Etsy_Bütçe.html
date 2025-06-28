@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon & Etsy Bütçe Yönetimi</title>
+    <style>
+        /* CSS kodunuz burada kalmaya devam ediyor */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-left: 5px solid;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+        .card.revenue { border-left-color: #27ae60; }
+        .card.expense { border-left-color: #e74c3c; }
+        .card.startup { border-left-color: #3498db; }
+        .card.profit { border-left-color: #f39c12; }
+        .card h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        .card .amount {
+            font-size: 2.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .card.revenue .amount { color: #27ae60; }
+        .card.expense .amount { color: #e74c3c; }
+        .card.startup .amount { color: #3498db; }
+        .card.profit .amount { color: #f39c12; }
+        .tabs {
+            display: flex;
+            background: #ecf0f1;
+            margin: 0 30px;
+            border-radius: 10px 10px 0 0;
+            overflow-x: auto; /* Sekmeler sığmazsa kaydırma çubuğu çıksın */
+        }
+        .tab {
+            flex-shrink: 0; /* Sekmelerin küçülmesini engeller */
+            padding: 15px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #7f8c8d;
+            transition: all 0.3s ease;
+            white-space: nowrap; /* Metin kaydırmasını engeller */
+        }
+        .tab.active {
+            background: white;
+            color: #2c3e50;
+            border-radius: 10px 10px 0 0;
+        }
+        .tab-content {
+            background: white;
+            margin: 0 30px 30px;
+            padding: 30px;
+            border-radius: 0 0 15px 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        .hidden {
+            display: none;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1.1em;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+        .input-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: end;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        input, select {
+            padding: 12px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        .btn {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            height: 48px; /* Inputlar ile aynı hizada olması için */
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+        .btn-danger:hover {
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+        }
+        .btn-edit {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            margin-right: 5px;
+        }
+        .btn-edit:hover {
+            box-shadow: 0 5px 15px rgba(243, 156, 18, 0.3);
+        }
+        .progress-bar {
+            background: #ecf0f1;
+            border-radius: 10px;
+            height: 20px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #27ae60, #2ecc71);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        .export-section {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 30px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        .export-btn {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            margin: 0 10px;
+        }
+        .export-btn:hover {
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
+        }
+        .analysis-filters {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap; /* Küçük ekranlarda alt alta gelmesi için */
+        }
+        .analysis-filters label {
+            margin-bottom: 0;
+            white-space: nowrap;
+        }
+        .analysis-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .analysis-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-left: 5px solid #a3a3a3; /* Nötr bir renk */
+        }
+        .analysis-card h4 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .chart-container {
+            width: 100%;
+            height: 300px;
+            margin-top: 15px;
+        }
+        @media (max-width: 768px) {
+            .input-group {
+                grid-template-columns: 1fr;
+            }
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            .tabs {
+                flex-direction: column;
+            }
+            .analysis-filters {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💼 Amazon & Etsy Bütçe Yönetimi</h1>
+            <p>E-ticaret İşletmenizin Kapsamlı Mali Takip Sistemi</p>
+        </div>
+        <div class="dashboard">
+            <div class="card revenue">
+                <h3>📈 Toplam Gelir</h3>
+                <div class="amount" id="totalRevenue">₺0</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="revenueProgress" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="card expense">
+                <h3>📉 Toplam Gider</h3>
+                <div class="amount" id="totalExpense">₺0</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="expenseProgress" style="width: 0%; background: linear-gradient(90deg, #e74c3c, #c0392b);"></div>
+                </div>
+            </div>
+            <div class="card startup">
+                <h3>🚀 Açılış Maliyeti</h3>
+                <div class="amount" id="startupCost">₺0</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="startupProgress" style="width: 0%; background: linear-gradient(90deg, #3498db, #2980b9);"></div>
+                </div>
+            </div>
+            <div class="card profit">
+                <h3>💰 Net Kar/Zarar</h3>
+                <div class="amount" id="netProfit">₺0</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="profitProgress" style="width: 0%; background: linear-gradient(90deg, #f39c12, #e67e22);"></div>
+                </div>
+            </div>
+        </div>
+        <div class="tabs">
+            <button class="tab active" onclick="showTab(event, 'startup')">🚀 Açılış Maliyetleri</button>
+            <button class="tab" onclick="showTab(event, 'revenue')">📈 Gelirler</button>
+            <button class="tab" onclick="showTab(event, 'expenses')">📉 Giderler</button>
+            <button class="tab" onclick="showTab(event, 'installments')">💳 Taksitli Alışverişler</button>
+            <button class="tab" onclick="showTab(event, 'analysis')">📊 Analiz</button>
+        </div>
+
+        <div id="startup" class="tab-content">
+            <h2>🚀 Şirket Açılış Maliyetleri</h2>
+            <div class="input-group">
+                <div class="form-group">
+                    <label>Maliyet Türü</label>
+                    <select id="startupType">
+                        <option value="Muhasebe">Muhasebe</option>
+                        <option value="Vergi">Vergi</option>
+                        <option value="Banka">Banka</option>
+                        <option value="Rexven Üyelik">Rexven Üyelik</option>
+                        <option value="Diğer">Diğer</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Açıklama</label>
+                    <input type="text" id="startupDescription" placeholder="Maliyet açıklaması">
+                </div>
+                <div class="form-group">
+                    <label>Tutar (₺)</label>
+                    <input type="number" id="startupAmount" placeholder="0">
+                </div>
+                <button class="btn" onclick="addStartupCost()">Ekle</button>
+            </div>
+            <table id="startupTable">
+                <thead>
+                    <tr>
+                        <th>Tür</th>
+                        <th>Açıklama</th>
+                        <th>Tutar</th>
+                        <th>Tarih</th>
+                        <th>İşlem</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div id="revenue" class="tab-content hidden">
+            <h2>📈 Gelir Yönetimi</h2>
+            <div class="input-group">
+                <div class="form-group">
+                    <label>Gelir Türü</label>
+                    <select id="revenueType">
+                        <option value="Etsy Satış">Etsy Satış</option>
+                        <option value="Amazon Satış">Amazon Satış</option>
+                        <option value="Diğer">Diğer</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Açıklama</label>
+                    <input type="text" id="revenueDescription" placeholder="Gelir açıklaması">
+                </div>
+                <div class="form-group">
+                    <label>Tutar (₺)</label>
+                    <input type="number" id="revenueAmount" placeholder="0">
+                </div>
+                <button class="btn" onclick="addRevenue()">Ekle</button>
+            </div>
+            <table id="revenueTable">
+                <thead>
+                    <tr>
+                        <th>Tür</th>
+                        <th>Açıklama</th>
+                        <th>Tutar</th>
+                        <th>Tarih</th>
+                        <th>İşlem</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div id="expenses" class="tab-content hidden">
+            <h2>📉 Gider Yönetimi</h2>
+            <div class="input-group">
+                <div class="form-group">
+                    <label>Gider Türü</label>
+                    <select id="expenseType">
+                        <option value="Etsy Komisyon">Etsy Komisyon</option>
+                        <option value="Etsy Listeleme">Etsy Listeleme</option>
+                        <option value="Etsy Reklam">Etsy Reklam</option>
+                        <option value="Etsy Üyelik">Etsy Üyelik</option>
+                        <option value="Amazon Komisyon">Amazon Komisyon</option>
+                        <option value="Amazon Listeleme">Amazon Listeleme</option>
+                        <option value="Amazon Reklam">Amazon Reklam</option>
+                        <option value="Amazon Üyelik">Amazon Üyelik</option>
+                        <option value="Rexven Mal Alış">Rexven Mal Alış</option>
+                        <option value="Diğer">Diğer</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Açıklama</label>
+                    <input type="text" id="expenseDescription" placeholder="Gider açıklaması">
+                </div>
+                <div class="form-group">
+                    <label>Tutar (₺)</label>
+                    <input type="number" id="expenseAmount" placeholder="0">
+                </div>
+                <button class="btn" onclick="addExpense()">Ekle</button>
+            </div>
+            <table id="expenseTable">
+                <thead>
+                    <tr>
+                        <th>Tür</th>
+                        <th>Açıklama</th>
+                        <th>Tutar</th>
+                        <th>Tarih</th>
+                        <th>İşlem</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div id="installments" class="tab-content hidden">
+            <h2>💳 Taksitli Alışverişler</h2>
+            <div class="input-group">
+                <div class="form-group">
+                    <label>Açıklama</label>
+                    <input type="text" id="installmentDescription" placeholder="Taksitli alışveriş açıklaması">
+                </div>
+                <div class="form-group">
+                    <label>Toplam Tutar (₺)</label>
+                    <input type="number" id="installmentTotalAmount" placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label>Taksit Sayısı</label>
+                    <input type="number" id="installmentCount" min="1" value="1" placeholder="1">
+                </div>
+                <div class="form-group">
+                    <label>Başlangıç Tarihi</label>
+                    <input type="date" id="installmentStartDate">
+                </div>
+                <button class="btn" onclick="addInstallment()">Ekle</button>
+            </div>
+            <table id="installmentTable">
+                <thead>
+                    <tr>
+                        <th>Açıklama</th>
+                        <th>Toplam Tutar</th>
+                        <th>Taksit Sayısı</th>
+                        <th>Başlangıç Tarihi</th>
+                        <th>Ödenen Taksit</th>
+                        <th>Kalan Taksit</th>
+                        <th>Aylık Tutar</th>
+                        <th>İşlem</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div id="analysis" class="tab-content hidden">
+            <h2>📊 Mali Analiz ve Raporlama</h2>
+            <div class="analysis-filters">
+                <div class="form-group">
+                    <label for="analysisPeriod">Analiz Dönemi:</label>
+                    <select id="analysisPeriod" onchange="updateAnalysis()">
+                        <option value="monthly">Aylık</option>
+                        <option value="yearly">Yıllık</option>
+                    </select>
+                </div>
+                <div class="form-group" id="monthFilterGroup">
+                    <label for="analysisMonth">Ay:</label>
+                    <select id="analysisMonth" onchange="updateAnalysis()">
+                        </select>
+                </div>
+                <div class="form-group" id="yearFilterGroup">
+                    <label for="analysisYear">Yıl:</label>
+                    <select id="analysisYear" onchange="updateAnalysis()">
+                        </select>
+                </div>
+            </div>
+
+            <div class="analysis-section">
+                <div class="card">
+                    <h3>💼 Genel Durum</h3>
+                    <p><strong>Toplam Gelir:</strong> <span id="analysisRevenue">₺0</span></p>
+                    <p><strong>Toplam Gider:</strong> <span id="analysisExpense">₺0</span></p>
+                    <p><strong>Açılış Maliyeti:</strong> <span id="analysisStartup">₺0</span></p>
+                    <p><strong>Net Durum:</strong> <span id="analysisNet">₺0</span></p>
+                </div>
+                <div class="analysis-card">
+                    <h3>📈 Gelir Türü Dağılımı</h3>
+                    <div class="chart-container">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+                <div class="analysis-card">
+                    <h3>📉 Gider Türü Dağılımı</h3>
+                    <div class="chart-container">
+                        <canvas id="expenseChart"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>🎯 Önem Derecesi</h3>
+                    <div id="recommendations"></div>
+                </div>
+                <div class="analysis-card">
+                    <h3>💰 Aylık Kar/Zarar Trendi (Son 12 Ay)</h3>
+                    <div class="chart-container">
+                        <canvas id="monthlyProfitTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="export-section">
+            <h3>📄 Dışa Aktırma</h3>
+            <p>Verilerinizi farklı formatlarda dışa aktarabilirsiniz</p>
+            <button class="btn export-btn" onclick="exportToCSV()">CSV Olarak İndir</button>
+            <button class="btn export-btn" onclick="exportToJSON()">JSON Olarak İndir</button>
+            <button class="btn export-btn" onclick="printReport()">Rapor Yazdır</button>
+        </div>
+    </div>
+
+    <script>
+        let startupCosts = [];
+        let revenues = [];
+        let expenses = [];
+        let installments = [];
+
+        // Chart.js instance'ları
+        let revenuePieChart, expensePieChart, monthlyProfitLineChart;
+
+        // Sayfa yüklendiğinde verileri yerel depolamadan yükle
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDataFromLocalStorage();
+            populateAnalysisFilters(); // Analiz filtrelerini doldur
+            updateDashboard();
+            updateAllTables();
+            updateInstallmentTable(); // Taksit tablosunu da güncelle
+            updateAnalysis(); // İlk yüklemede analizleri göster
+        });
+
+        // Tab değiştirme fonksiyonu
+        function showTab(event, tabName) {
+            // Tüm sekme içeriklerini gizle
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+
+            // Tüm sekme butonlarından 'active' sınıfını kaldır
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Seçilen sekme içeriğini göster
+            document.getElementById(tabName).classList.remove('hidden');
+
+            // Tıklanan sekme butonuna 'active' sınıfını ekle
+            event.currentTarget.classList.add('active');
+
+            // Analiz sekmesi seçiliyse analizleri ve grafikleri güncelle
+            if (tabName === 'analysis') {
+                updateAnalysis();
+            }
+        }
+
+        // Yerel depolamaya verileri kaydetme fonksiyonu
+        function saveDataToLocalStorage() {
+            localStorage.setItem('startupCosts', JSON.stringify(startupCosts));
+            localStorage.setItem('revenues', JSON.stringify(revenues));
+            localStorage.setItem('expenses', JSON.stringify(expenses));
+            localStorage.setItem('installments', JSON.stringify(installments));
+            console.log('Veriler Local Storage\'a kaydedildi.'); // Hata ayıklama çıktısı
+            console.log('Kaydedilen gelirler:', revenues); // Hata ayıklama çıktısı
+        }
+
+        // Yerel depolamadan verileri yükleme fonksiyonu
+        function loadDataFromLocalStorage() {
+            const storedStartupCosts = localStorage.getItem('startupCosts');
+            const storedRevenues = localStorage.getItem('revenues');
+            const storedExpenses = localStorage.getItem('expenses');
+            const storedInstallments = localStorage.getItem('installments');
+
+            if (storedStartupCosts) {
+                startupCosts = JSON.parse(storedStartupCosts);
+                console.log('Yüklenen başlangıç maliyetleri:', startupCosts); // Hata ayıklama çıktısı
+            }
+            if (storedRevenues) {
+                revenues = JSON.parse(storedRevenues);
+                console.log('Yüklenen gelirler:', revenues); // Hata ayıklama çıktısı
+            }
+            if (storedExpenses) {
+                expenses = JSON.parse(storedExpenses);
+                console.log('Yüklenen giderler:', expenses); // Hata ayıklama çıktısı
+            }
+            if (storedInstallments) {
+                installments = JSON.parse(storedInstallments);
+                console.log('Yüklenen taksitler:', installments); // Hata ayıklama çıktısı
+            }
+            console.log('Veriler Local Storage\'dan yüklendi.'); // Hata ayıklama çıktısı
+        }
+
+        // Açılış Maliyeti Ekle/Güncelle
+        function addStartupCost(id = null) {
+            const type = document.getElementById('startupType').value;
+            const description = document.getElementById('startupDescription').value;
+            const amount = parseFloat(document.getElementById('startupAmount').value) || 0;
+            const date = new Date().toLocaleDateString('tr-TR'); // Düzenlemede tarih güncellenmesin
+
+            if (description && amount > 0) {
+                if (id) {
+                    // Düzenleme işlemi
+                    const index = startupCosts.findIndex(item => item.id === id);
+                    if (index > -1) {
+                        startupCosts[index] = { ...startupCosts[index], type, description, amount };
+                        console.log('Başlangıç maliyeti güncellendi:', startupCosts[index]); // Hata ayıklama çıktısı
+                    }
+                } else {
+                    // Yeni ekleme işlemi
+                    const cost = { id: Date.now(), type, description, amount, date };
+                    startupCosts.push(cost);
+                    console.log('Yeni başlangıç maliyeti eklendi:', cost); // Hata ayıklama çıktısı
+                }
+                updateStartupTable();
+                updateDashboard();
+                saveDataToLocalStorage();
+                // Girişleri temizle ve butonu "Ekle" yap
+                document.getElementById('startupDescription').value = '';
+                document.getElementById('startupAmount').value = '';
+                document.querySelector('#startup .btn').textContent = 'Ekle';
+                document.querySelector('#startup .btn').onclick = addStartupCost;
+                alert('Başlangıç maliyeti başarıyla eklendi/güncellendi!'); // Kullanıcıya geri bildirim
+            } else {
+                alert('Lütfen maliyet açıklaması ve tutarı giriniz.');
+            }
+        }
+
+        // Gelir Ekle/Güncelle
+        function addRevenue(id = null) {
+            const type = document.getElementById('revenueType').value;
+            const description = document.getElementById('revenueDescription').value;
+            const amount = parseFloat(document.getElementById('revenueAmount').value) || 0;
+            const date = new Date().toLocaleDateString('tr-TR');
+
+            if (description && amount > 0) {
+                if (id) {
+                    // Düzenleme işlemi
+                    const index = revenues.findIndex(item => item.id === id);
+                    if (index > -1) {
+                        revenues[index] = { ...revenues[index], type, description, amount };
+                        console.log('Gelir güncellendi:', revenues[index]); // Hata ayıklama çıktısı
+                    }
+                } else {
+                    // Yeni ekleme işlemi
+                    const revenue = { id: Date.now(), type, description, amount, date };
+                    revenues.push(revenue);
+                    console.log('Yeni gelir eklendi:', revenue); // Hata ayıklama çıktısı
+                }
+                updateRevenueTable();
+                updateDashboard();
+                saveDataToLocalStorage();
+                document.getElementById('revenueDescription').value = '';
+                document.getElementById('revenueAmount').value = '';
+                document.querySelector('#revenue .btn').textContent = 'Ekle';
+                document.querySelector('#revenue .btn').onclick = addRevenue;
+                alert('Gelir başarıyla eklendi/güncellendi!'); // Kullanıcıya geri bildirim
+            } else {
+                alert('Lütfen gelir açıklaması ve tutarı giriniz.');
+            }
+        }
+
+        // Gider Ekle/Güncelle
+        function addExpense(id = null) {
+            const type = document.getElementById('expenseType').value;
+            const description = document.getElementById('expenseDescription').value;
+            const amount = parseFloat(document.getElementById('expenseAmount').value) || 0;
+            const date = new Date().toLocaleDateString('tr-TR');
+
+            if (description && amount > 0) {
+                if (id) {
+                    // Düzenleme işlemi
+                    const index = expenses.findIndex(item => item.id === id);
+                    if (index > -1) {
+                        expenses[index] = { ...expenses[index], type, description, amount };
+                        console.log('Gider güncellendi:', expenses[index]); // Hata ayıklama çıktısı
+                    }
+                } else {
+                    // Yeni ekleme işlemi
+                    const expense = { id: Date.now(), type, description, amount, date };
+                    expenses.push(expense);
+                    console.log('Yeni gider eklendi:', expense); // Hata ayıklama çıktısı
+                }
+                updateExpenseTable();
+                updateDashboard();
+                saveDataToLocalStorage();
+                document.getElementById('expenseDescription').value = '';
+                document.getElementById('expenseAmount').value = '';
+                document.querySelector('#expenses .btn').textContent = 'Ekle';
+                document.querySelector('#expenses .btn').onclick = addExpense;
+                alert('Gider başarıyla eklendi/güncellendi!'); // Kullanıcıya geri bildirim
+            } else {
+                alert('Lütfen gider açıklaması ve tutarı giriniz.');
+            }
+        }
+
+        // Taksitli Alışveriş Ekle/Güncelle
+        function addInstallment(id = null) {
+            const description = document.getElementById('installmentDescription').value;
+            const totalAmount = parseFloat(document.getElementById('installmentTotalAmount').value) || 0;
+            const installmentCount = parseInt(document.getElementById('installmentCount').value) || 1;
+            const startDate = document.getElementById('installmentStartDate').value;
+
+            if (description && totalAmount > 0 && installmentCount > 0 && startDate) {
+                const monthlyAmount = (totalAmount / installmentCount).toFixed(2);
+                if (id) {
+                    // Düzenleme işlemi
+                    const index = installments.findIndex(item => item.id === id);
+                    if (index > -1) {
+                        // Ödenen taksit sayısını koru
+                        installments[index] = { ...installments[index], description, totalAmount, installmentCount, startDate, monthlyAmount };
+                        console.log('Taksitli alışveriş güncellendi:', installments[index]); // Hata ayıklama çıktısı
+                    }
+                } else {
+                    // Yeni ekleme işlemi
+                    const installment = {
+                        id: Date.now(),
+                        description,
+                        totalAmount,
+                        installmentCount,
+                        paidInstallments: 0,
+                        startDate,
+                        monthlyAmount,
+                        dateAdded: new Date().toLocaleDateString('tr-TR')
+                    };
+                    installments.push(installment);
+                    console.log('Yeni taksitli alışveriş eklendi:', installment); // Hata ayıklama çıktısı
+                }
+                updateInstallmentTable();
+                saveDataToLocalStorage();
+                // Girişleri temizle ve butonu "Ekle" yap
+                document.getElementById('installmentDescription').value = '';
+                document.getElementById('installmentTotalAmount').value = '';
+                document.getElementById('installmentCount').value = '1';
+                document.getElementById('installmentStartDate').value = '';
+                document.querySelector('#installments .btn').textContent = 'Ekle';
+                document.querySelector('#installments .btn').onclick = addInstallment;
+                alert('Taksitli alışveriş başarıyla eklendi/güncellendi!'); // Kullanıcıya geri bildirim
+            } else {
+                alert('Lütfen tüm taksitli alışveriş alanlarını doldurun.');
+            }
+        }
+
+        // Ortak düzenleme fonksiyonu (tablolardan giriş alanlarına veri yükler)
+        function editItem(item, type) {
+            console.log(`Editing item type: ${type}, ID: ${item.id}`); // Hata ayıklama çıktısı
+            if (type === 'startup') {
+                document.getElementById('startupType').value = item.type;
+                document.getElementById('startupDescription').value = item.description;
+                document.getElementById('startupAmount').value = item.amount;
+                // Butonun işlevini güncelleme olarak ayarla
+                document.querySelector('#startup .btn').textContent = 'Güncelle';
+                document.querySelector('#startup .btn').onclick = () => addStartupCost(item.id);
+            } else if (type === 'revenue') {
+                document.getElementById('revenueType').value = item.type;
+                document.getElementById('revenueDescription').value = item.description;
+                document.getElementById('revenueAmount').value = item.amount;
+                document.querySelector('#revenue .btn').textContent = 'Güncelle';
+                document.querySelector('#revenue .btn').onclick = () => addRevenue(item.id);
+            } else if (type === 'expense') {
+                document.getElementById('expenseType').value = item.type;
+                document.getElementById('expenseDescription').value = item.description;
+                document.getElementById('expenseAmount').value = item.amount;
+                document.querySelector('#expenses .btn').textContent = 'Güncelle';
+                document.querySelector('#expenses .btn').onclick = () => addExpense(item.id);
+            } else if (type === 'installment') {
+                document.getElementById('installmentDescription').value = item.description;
+                document.getElementById('installmentTotalAmount').value = item.totalAmount;
+                document.getElementById('installmentCount').value = item.installmentCount;
+                document.getElementById('installmentStartDate').value = item.startDate;
+                document.querySelector('#installments .btn').textContent = 'Güncelle';
+                document.querySelector('#installments .btn').onclick = () => addInstallment(item.id);
+            }
+        }
+
+        // Taksitli alışveriş ödemesini işaretle
+        function markInstallmentPaid(id) {
+            const installment = installments.find(item => item.id === id);
+            if (installment && installment.paidInstallments < installment.installmentCount) {
+                installment.paidInstallments++;
+                console.log(`Taksit ödendi: ${installment.description}, Ödenen: ${installment.paidInstallments}`); // Hata ayıklama çıktısı
+                // Ödenen taksit kadar gider olarak kaydet
+                const expenseAmount = parseFloat(installment.monthlyAmount);
+                // Aynı ID'de tekrar tekrar gider eklememek için kontrol
+                // Veya taksit ödemeleri için özel bir gider tipi ve farklı bir kayıt mekanizması düşünülebilir.
+                // Şimdilik her ödemede yeni bir gider kaydı oluşturuyoruz.
+                const expense = {
+                    id: Date.now(),
+                    type: "Taksit Ödemesi",
+                    description: installment.description + ` (${installment.paidInstallments}. Taksit)`,
+                    amount: expenseAmount,
+                    date: new Date().toLocaleDateString('tr-TR')
+                };
+                expenses.push(expense);
+                console.log('Yeni taksit gideri eklendi:', expense); // Hata ayıklama çıktısı
+
+                updateInstallmentTable();
+                updateExpenseTable(); // Gider tablosunu güncelle
+                updateDashboard();
+                saveDataToLocalStorage();
+            } else if (installment && installment.paidInstallments >= installment.installmentCount) {
+                alert('Bu taksitli alışveriş zaten tamamlandı.');
+            }
+        }
+
+        // Tablodan öğe sil
+        function deleteItem(array, id) {
+            const initialLength = array.length;
+            const index = array.findIndex(item => item.id === id);
+            if (index > -1) {
+                array.splice(index, 1);
+                console.log(`Öğe silindi, ID: ${id}. Kalan eleman sayısı: ${array.length}`); // Hata ayıklama çıktısı
+                updateAllTables();
+                updateDashboard();
+                saveDataToLocalStorage();
+            } else {
+                console.warn(`Silinecek öğe bulunamadı, ID: ${id}`); // Hata ayıklama çıktısı
+            }
+        }
+
+        // Açılış Maliyetleri Tablosunu Güncelle
+        function updateStartupTable() {
+            const tbody = document.querySelector('#startupTable tbody');
+            // Clear existing rows more robustly
+            while (tbody.firstChild) {
+                tbody.removeChild(tbody.lastChild);
+            }
+            startupCosts.forEach(cost => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td><strong>${cost.type}</strong></td>
+                    <td>${cost.description}</td>
+                    <td><strong>₺${cost.amount.toLocaleString('tr-TR')}</strong></td>
+                    <td>${cost.date}</td>
+                    <td>
+                        <button class="btn btn-edit" onclick="editItem(${JSON.stringify(cost).replace(/"/g, '&quot;')}, 'startup')">Düzenle</button>
+                        <button class="btn btn-danger" onclick="deleteItem(startupCosts, ${cost.id})">Sil</button>
+                    </td>
+                `;
+            });
+            console.log('Başlangıç Maliyetleri Tablosu güncellendi.'); // Hata ayıklama çıktısı
+        }
+
+        // Gelir Tablosunu Güncelle
+        function updateRevenueTable() {
+            const tbody = document.querySelector('#revenueTable tbody');
+            // Clear existing rows more robustly
+            while (tbody.firstChild) {
+                tbody.removeChild(tbody.lastChild);
+            }
+            revenues.forEach(revenue => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td><strong>${revenue.type}</strong></td>
+                    <td>${revenue.description}</td>
+                    <td><strong>₺${revenue.amount.toLocaleString('tr-TR')}</strong></td>
+                    <td>${revenue.date}</td>
+                    <td>
+                        <button class="btn btn-edit" onclick="editItem(${JSON.stringify(revenue).replace(/"/g, '&quot;')}, 'revenue')">Düzenle</button>
+                        <button class="btn btn-danger" onclick="deleteItem(revenues, ${revenue.id})">Sil</button>
+                    </td>
+                `;
+            });
+            console.log('Gelir Tablosu güncellendi.'); // Hata ayıklama çıktısı
+        }
+
+        // Gider Tablosunu Güncelle
+        function updateExpenseTable() {
+            const tbody = document.querySelector('#expenseTable tbody');
+            // Clear existing rows more robustly
+            while (tbody.firstChild) {
+                tbody.removeChild(tbody.lastChild);
+            }
+            expenses.forEach(expense => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td><strong>${expense.type}</strong></td>
+                    <td>${expense.description}</td>
+                    <td><strong>₺${expense.amount.toLocaleString('tr-TR')}</strong></td>
+                    <td>${expense.date}</td>
+                    <td>
+                        <button class="btn btn-edit" onclick="editItem(${JSON.stringify(expense).replace(/"/g, '&quot;')}, 'expense')">Düzenle</button>
+                        <button class="btn btn-danger" onclick="deleteItem(expenses, ${expense.id})">Sil</button>
+                    </td>
+                `;
+            });
+            console.log('Gider Tablosu güncellendi.'); // Hata ayıklama çıktısı
+        }
+
+        // Taksitli Alışverişler Tablosunu Güncelle
+        function updateInstallmentTable() {
+            const tbody = document.querySelector('#installmentTable tbody');
+            // Clear existing rows more robustly
+            while (tbody.firstChild) {
+                tbody.removeChild(tbody.lastChild);
+            }
+            installments.forEach(item => {
+                const remainingInstallments = item.installmentCount - item.paidInstallments;
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${item.description}</td>
+                    <td>₺${item.totalAmount.toLocaleString('tr-TR')}</td>
+                    <td>${item.installmentCount}</td>
+                    <td>${item.startDate}</td>
+                    <td>${item.paidInstallments}</td>
+                    <td>${remainingInstallments}</td>
+                    <td>₺${item.monthlyAmount.toLocaleString('tr-TR')}</td>
+                    <td>
+                        ${remainingInstallments > 0 ? `<button class="btn" onclick="markInstallmentPaid(${item.id})">Ödendi</button>` : '<span style="color: green; font-weight: bold;">Tamamlandı</span>'}
+                        <button class="btn btn-edit" onclick="editItem(${JSON.stringify(item).replace(/"/g, '&quot;')}, 'installment')">Düzenle</button>
+                        <button class="btn btn-danger" onclick="deleteItem(installments, ${item.id})">Sil</button>
+                    </td>
+                `;
+            });
+            console.log('Taksit Tablosu güncellendi.'); // Hata ayıklama çıktısı
+        }
+
+        // Tüm Tabloları Güncelle
+        function updateAllTables() {
+            updateStartupTable();
+            updateRevenueTable();
+            updateExpenseTable();
+            updateInstallmentTable();
+            console.log('Tüm tablolar güncellendi.'); // Hata ayıklama çıktısı
+        }
+
+        // Gösterge Paneli (Dashboard) Güncelle
+        function updateDashboard() {
+            const totalRevenue = revenues.reduce((sum, item) => sum + item.amount, 0);
+            const totalExpense = expenses.reduce((sum, item) => sum + item.amount, 0);
+            const totalStartup = startupCosts.reduce((sum, item) => sum + item.amount, 0);
+            const netProfit = totalRevenue - totalExpense - totalStartup;
+
+            document.getElementById('totalRevenue').textContent = `₺${totalRevenue.toLocaleString('tr-TR')}`;
+            document.getElementById('totalExpense').textContent = `₺${totalExpense.toLocaleString('tr-TR')}`;
+            document.getElementById('startupCost').textContent = `₺${totalStartup.toLocaleString('tr-TR')}`;
+            document.getElementById('netProfit').textContent = `₺${netProfit.toLocaleString('tr-TR')}`;
+
+            // İlerleme çubuklarını güncelle
+            const maxAmount = Math.max(totalRevenue, totalExpense, totalStartup, Math.abs(netProfit), 1);
+            document.getElementById('revenueProgress').style.width = `${(totalRevenue / maxAmount) * 100}%`;
+            document.getElementById('expenseProgress').style.width = `${(totalExpense / maxAmount) * 100}%`;
+            document.getElementById('startupProgress').style.width = `${(totalStartup / maxAmount) * 100}%`;
+            document.getElementById('profitProgress').style.width = `${(Math.abs(netProfit) / maxAmount) * 100}%`;
+            console.log('Dashboard güncellendi. Toplam Gelir:', totalRevenue); // Hata ayıklama çıktısı
+        }
+
+        // Analiz Filtrelerini Doldur
+        function populateAnalysisFilters() {
+            const monthSelect = document.getElementById('analysisMonth');
+            const yearSelect = document.getElementById('analysisYear');
+            const currentYear = new Date().getFullYear();
+            const currentMonth = new Date().getMonth(); // 0-11 arası
+
+            // Ayları doldur
+            const months = [
+                'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+                'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+            ];
+            monthSelect.innerHTML = '';
+            months.forEach((month, index) => {
+                const option = document.createElement('option');
+                option.value = index; // Ay indeksini değer olarak kullan
+                option.textContent = month;
+                if (index === currentMonth) {
+                    option.selected = true;
+                }
+                monthSelect.appendChild(option);
+            });
+
+            // Yılları doldur (mevcut yıldan 5 yıl öncesine kadar ve gelecekteki 1 yıl)
+            yearSelect.innerHTML = '';
+            for (let i = currentYear - 5; i <= currentYear + 1; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i;
+                if (i === currentYear) {
+                    option.selected = true;
+                }
+                yearSelect.appendChild(option);
+            }
+            console.log('Analiz filtreleri dolduruldu.'); // Hata ayıklama çıktısı
+        }
+
+        // Analiz Güncelle
+        function updateAnalysis() {
+            const period = document.getElementById('analysisPeriod').value;
+            const selectedMonth = parseInt(document.getElementById('analysisMonth').value);
+            const selectedYear = parseInt(document.getElementById('analysisYear').value);
+
+            // Filtre gruplarının görünürlüğünü ayarla
+            document.getElementById('monthFilterGroup').style.display = (period === 'monthly') ? 'flex' : 'none';
+            document.getElementById('yearFilterGroup').style.display = 'flex';
+
+            let filteredRevenues = [];
+            let filteredExpenses = [];
+            let filteredStartupCosts = [];
+
+            // Tarihleri düzgün parse etmek için yardımcı fonksiyon
+            const parseDate = (dateString) => {
+                const parts = dateString.split('.');
+                // GG.AA.YYYY formatından YYYY-AA-GG formatına çeviriyoruz çünkü Date objesi bu formatı daha iyi anlar
+                if (parts.length === 3) {
+                    return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+                }
+                // ISO formatı veya diğer geçerli formatlar için doğrudan döndür
+                return new Date(dateString);
+            };
+
+            if (period === 'monthly') {
+                filteredRevenues = revenues.filter(item => {
+                    const itemDate = parseDate(item.date);
+                    return itemDate.getMonth() === selectedMonth && itemDate.getFullYear() === selectedYear;
+                });
+                filteredExpenses = expenses.filter(item => {
+                    const itemDate = parseDate(item.date);
+                    return itemDate.getMonth() === selectedMonth && itemDate.getFullYear() === selectedYear;
+                });
+                filteredStartupCosts = startupCosts.filter(item => {
+                    const itemDate = parseDate(item.date);
+                    return itemDate.getMonth() === selectedMonth && itemDate.getFullYear() === selectedYear;
+                });
+            } else if (period === 'yearly') {
+                filteredRevenues = revenues.filter(item => {
+                    const itemDate = parseDate(item.date);
+                    return itemDate.getFullYear() === selectedYear;
+                });
+                filteredExpenses = expenses.filter(item => {
+                    const itemDate = parseDate(item.date);
+                    return itemDate.getFullYear() === selectedYear;
+                });
+                filteredStartupCosts = startupCosts.filter(item => {
+                    const itemDate = parseDate(item.date);
+                    return itemDate.getFullYear() === selectedYear;
+                });
+            }
+
+            const totalRevenue = filteredRevenues.reduce((sum, item) => sum + item.amount, 0);
+            const totalExpense = filteredExpenses.reduce((sum, item) => sum + item.amount, 0);
+            const totalStartup = filteredStartupCosts.reduce((sum, item) => sum + item.amount, 0);
+            const netProfit = totalRevenue - totalExpense - totalStartup;
+
+            document.getElementById('analysisRevenue').textContent = `₺${totalRevenue.toLocaleString('tr-TR')}`;
+            document.getElementById('analysisExpense').textContent = `₺${totalExpense.toLocaleString('tr-TR')}`;
+            document.getElementById('analysisStartup').textContent = `₺${totalStartup.toLocaleString('tr-TR')}`;
+            document.getElementById('analysisNet').textContent = `₺${netProfit.toLocaleString('tr-TR')}`;
+            console.log(`Analiz güncellendi. Dönem: ${period}, Yıl: ${selectedYear}, Ay: ${selectedMonth}. Net Kar: ${netProfit}`); // Hata ayıklama çıktısı
+
+            // Gelir türüne göre analiz
+            const revenueByType = {};
+            filteredRevenues.forEach(item => {
+                revenueByType[item.type] = (revenueByType[item.type] || 0) + item.amount;
+            });
+            drawPieChart('revenueChart', Object.keys(revenueByType), Object.values(revenueByType), 'Gelir Dağılımı', ['#2ecc71', '#3498db', '#9b59b6', '#f1c40f', '#e67e22']);
+
+            // Gider türüne göre analiz
+            const expenseByType = {};
+            filteredExpenses.forEach(item => {
+                expenseByType[item.type] = (expenseByType[item.type] || 0) + item.amount;
+            });
+            drawPieChart('expenseChart', Object.keys(expenseByType), Object.values(expenseByType), 'Gider Dağılımı', ['#e74c3c', '#c0392b', '#7f8c8d', '#f39c12', '#d35400', '#1abc9c', '#2c3e50', '#8e44ad', '#2980b9']);
+
+            // Aylık Kar/Zarar Trendi (Son 12 Ay)
+            updateMonthlyProfitTrendChart();
+
+            // Öneriler
+            let recommendations = '<h4>Öneriler:</h4>';
+            if (netProfit > 0) {
+                recommendations += '<p style="color: #27ae60;">✅ Şirketiniz bu dönemde kar etti. Büyüme için yatırım planları yapabilirsiniz.</p>';
+            } else if (netProfit < 0) {
+                recommendations += '<p style="color: #e74c3c;">⚠️ Şirketiniz bu dönemde zarar etti. Giderleri gözden geçirin veya gelir artırıcı adımlar atın.</p>';
+            } else {
+                recommendations += '<p style="color: #f39c12;">⚡ Şirketiniz bu dönemde başabaş durumda. Gelir artırıcı stratejiler geliştirin veya giderleri optimize edin.</p>';
+            }
+
+            if (totalExpense > totalRevenue * 0.8 && totalRevenue > 0) {
+                recommendations += '<p style="color: #e74c3c;">📉 Giderleriniz gelirinizin %80\'ini aşıyor. Maliyet optimizasyonu yapmayı değerlendirin.</p>';
+            }
+            document.getElementById('recommendations').innerHTML = recommendations;
+        }
+
+        // Genel pasta grafiği çizim fonksiyonu
+        function drawPieChart(canvasId, labels, data, title, colors) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            // Var olan grafiği yok et
+            if (canvasId === 'revenueChart' && revenuePieChart) revenuePieChart.destroy();
+            if (canvasId === 'expenseChart' && expensePieChart) expensePieChart.destroy();
+
+            const chartData = {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: colors,
+                    hoverOffset: 4
+                }]
+            };
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: title
+                    },
+                    legend: {
+                        position: 'right', // Legend'ı sağa al
+                    }
+                }
+            };
+
+            if (canvasId === 'revenueChart') {
+                revenuePieChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: chartData,
+                    options: chartOptions
+                });
+            } else if (canvasId === 'expenseChart') {
+                expensePieChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: chartData,
+                    options: chartOptions
+                });
+            }
+            console.log(`Pasta grafiği çizildi: ${title}`); // Hata ayıklama çıktısı
+        }
+
+        // Aylık Kar/Zarar Trend Grafiği
+        function updateMonthlyProfitTrendChart() {
+            const currentMonth = new Date().getMonth();
+            const currentYear = new Date().getFullYear();
+            const months = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+            const labels = [];
+            const profits = [];
+
+            // Son 12 ayı döngüye al
+            for (let i = 11; i >= 0; i--) {
+                let month = currentMonth - i;
+                let year = currentYear;
+                if (month < 0) {
+                    month += 12;
+                    year -= 1;
+                }
+                labels.push(`${months[month]} ${year}`);
+
+                // Bu ay ve yıla ait gelir ve giderleri filtrele
+                const monthlyRevenues = revenues.filter(item => {
+                    // Tarihleri GG.AA.YYYY'den YYYY-AA-GG'ye çevirerek güvenli parse et
+                    const itemDateParts = item.date.split('.');
+                    const itemDate = new Date(`${itemDateParts[2]}-${itemDateParts[1]}-${itemDateParts[0]}`);
+                    return itemDate.getMonth() === month && itemDate.getFullYear() === year;
+                }).reduce((sum, item) => sum + item.amount, 0);
+
+                const monthlyExpenses = expenses.filter(item => {
+                    const itemDateParts = item.date.split('.');
+                    const itemDate = new Date(`${itemDateParts[2]}-${itemDateParts[1]}-${itemDateParts[0]}`);
+                    return itemDate.getMonth() === month && itemDate.getFullYear() === year;
+                }).reduce((sum, item) => sum + item.amount, 0);
+
+                const monthlyStartupCosts = startupCosts.filter(item => {
+                    const itemDateParts = item.date.split('.');
+                    const itemDate = new Date(`${itemDateParts[2]}-${itemDateParts[1]}-${itemDateParts[0]}`);
+                    return itemDate.getMonth() === month && itemDate.getFullYear() === year;
+                }).reduce((sum, item) => sum + item.amount, 0);
+
+                profits.push(monthlyRevenues - monthlyExpenses - monthlyStartupCosts);
+            }
+
+            const ctx = document.getElementById('monthlyProfitTrendChart').getContext('2d');
+
+            // Var olan grafiği yok et
+            if (monthlyProfitLineChart) monthlyProfitLineChart.destroy();
+
+            monthlyProfitLineChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Net Kar/Zarar',
+                        data: profits,
+                        borderColor: '#36A2EB',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Aylık Net Kar/Zarar Trendi'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Tutar (₺)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Ay/Yıl'
+                            }
+                        }
+                    }
+                }
+            });
+            console.log('Aylık Kar/Zarar Trend Grafiği güncellendi.'); // Hata ayıklama çıktısı
+        }
+
+        function exportToCSV() {
+            let csv = '\uFEFF'; // BOM for UTF-8
+            csv += 'Kategori,Tür,Açıklama,Tutar,Tarih,Taksit Bilgisi\n';
+
+            startupCosts.forEach(item => {
+                csv += `"Açılış Maliyeti","${item.type}","${item.description.replace(/"/g, '""')}","${item.amount}","${item.date}",""\n`;
+            });
+            revenues.forEach(item => {
+                csv += `"Gelir","${item.type}","${item.description.replace(/"/g, '""')}","${item.amount}","${item.date}",""\n`;
+            });
+            expenses.forEach(item => {
+                csv += `"Gider","${item.type}","${item.description.replace(/"/g, '""')}","${item.amount}","${item.date}",""\n`;
+            });
+            installments.forEach(item => {
+                csv += `"Taksitli Alışveriş","Taksit","${item.description.replace(/"/g, '""')}","${item.totalAmount}","${item.startDate}","${item.installmentCount} Taksit / ${item.paidInstallments} Ödendi / ${item.monthlyAmount} Aylık"\n`;
+            });
+
+            try {
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'butce_raporu_' + new Date().toISOString().slice(0,10) + '.csv';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+                alert('CSV dosyası başarıyla indirildi!');
+                console.log('CSV dışa aktarma tamamlandı.'); // Hata ayıklama çıktısı
+            } catch (error) {
+                console.error('CSV indirme hatası:', error);
+                alert('CSV indirme sırasında bir hata oluştu. Lütfen tekrar deneyin.');
+            }
+        }
+
+        function exportToJSON() {
+            const data = {
+                startupCosts,
+                revenues,
+                expenses,
+                installments,
+                summary: {
+                    totalRevenue: revenues.reduce((sum, item) => sum + item.amount, 0),
+                    totalExpense: expenses.reduce((sum, item) => sum + item.amount, 0),
+                    totalStartup: startupCosts.reduce((sum, item) => sum + item.amount, 0),
+                    netProfit: revenues.reduce((sum, item) => sum + item.amount, 0) -
+                               expenses.reduce((sum, item) => sum + item.amount, 0) -
+                               startupCosts.reduce((sum, item) => sum + item.amount, 0)
+                },
+                exportDate: new Date().toISOString()
+            };
+
+            try {
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'butce_verileri_' + new Date().toISOString().slice(0,10) + '.json';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+                alert('JSON dosyası başarıyla indirildi!');
+                console.log('JSON dışa aktarma tamamlandı.'); // Hata ayıklama çıktısı
+            } catch (error) {
+                console.error('JSON indirme hatası:', error);
+                alert('JSON indirme sırasında bir hata oluştu. Lütfen tekrar deneyin.');
+            }
+        }
+
+        function printReport() {
+            const totalRevenue = revenues.reduce((sum, item) => sum + item.amount, 0);
+            const totalExpense = expenses.reduce((sum, item) => sum + item.amount, 0);
+            const totalStartup = startupCosts.reduce((sum, item) => sum + item.amount, 0);
+            const netProfit = totalRevenue - totalExpense - totalStartup;
+
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Bütçe Raporu</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        h1, h2 { color: #2c3e50; }
+                        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                        th { background-color: #f2f2f2; }
+                        .summary { background: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0; }
+                    </style>
+                </head>
+                <body>
+                    <h1>Şirket Bütçe Raporu</h1>
+                    <p>Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}</p>
+
+                    <div class="summary">
+                        <h2>Özet</h2>
+                        <p><strong>Toplam Gelir:</strong> ₺${totalRevenue.toLocaleString('tr-TR')}</p>
+                        <p><strong>Toplam Gider:</strong> ₺${totalExpense.toLocaleString('tr-TR')}</p>
+                        <p><strong>Açılış Maliyeti:</strong> ₺${totalStartup.toLocaleString('tr-TR')}</p>
+                        <p><strong>Net Kar/Zarar:</strong> ₺${netProfit.toLocaleString('tr-TR')}</p>
+                    </div>
+
+                    <h2>Açılış Maliyetleri</h2>
+                    <table>
+                        <tr><th>Tür</th><th>Açıklama</th><th>Tutar</th><th>Tarih</th></tr>
+                        ${startupCosts.map(item => `<tr><td>${item.type}</td><td>${item.description}</td><td>₺${item.amount.toLocaleString('tr-TR')}</td><td>${item.date}</td></tr>`).join('')}
+                    </table>
+
+                    <h2>Gelirler</h2>
+                    <table>
+                        <tr><th>Tür</th><th>Açıklama</th><th>Tutar</th><th>Tarih</th></tr>
+                        ${revenues.map(item => `<tr><td>${item.type}</td><td>${item.description}</td><td>₺${item.amount.toLocaleString('tr-TR')}</td><td>${item.date}</td></tr>`).join('')}
+                    </table>
+
+                    <h2>Giderler</h2>
+                    <table>
+                        <tr><th>Tür</th><th>Açıklama</th><th>Tutar</th><th>Tarih</th></tr>
+                        ${expenses.map(item => `<tr><td>${item.type}</td><td>${item.description}</td><td>₺${item.amount.toLocaleString('tr-TR')}</td><td>${item.date}</td></tr>`).join('')}
+                    </table>
+
+                    <h2>Taksitli Alışverişler</h2>
+                    <table>
+                        <tr><th>Açıklama</th><th>Toplam Tutar</th><th>Taksit Sayısı</th><th>Başlangıç Tarihi</th><th>Ödenen Taksit</th><th>Kalan Taksit</th><th>Aylık Tutar</th></tr>
+                        ${installments.map(item => `<tr><td>${item.description}</td><td>₺${item.totalAmount.toLocaleString('tr-TR')}</td><td>${item.installmentCount}</td><td>${item.startDate}</td><td>${item.paidInstallments}</td><td>${item.installmentCount - item.paidInstallments}</td><td>₺${item.monthlyAmount.toLocaleString('tr-TR')}</td></tr>`).join('')}
+                    </table>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.print();
+            console.log('Rapor yazdırma başlatıldı.'); // Hata ayıklama çıktısı
+        }
+    </script>
+</body>
+</html>
